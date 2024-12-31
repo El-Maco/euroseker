@@ -26,12 +26,7 @@ jobs:
         run: export CARGO_HOME="/home/$(whoami)/.local/share/.cargo" && cargo build --target i686-unknown-linux-gnu --release
 
       - name: Deploy
-        env:
-          TARGET_HOST: ${{ secrets.TARGET_HOST }}
-          TARGET_USER: ${{ secrets.TARGET_USER }}
-          TARGET_PASS: ${{ secrets.TARGET_PASS }}
-          TARGET_PATH: ${{ secrets.TARGET_PATH }}
         run: |
-          ssh $TARGET_USER@$TARGET_HOST "echo $TARGET_PASS | sudo -S systemctl stop euroseker.service"
-          scp target/i686-unknown-linux-gnu/release/euroseker $TARGET_USER@$TARGET_HOST:$TARGET_PATH
-          ssh $TARGET_USER@$TARGET_HOST "echo $TARGET_PASS | sudo -S systemctl start euroseker.service"
+          ssh ${{ secrets.TARGET_USER }}@${{ secrets.TARGET_HOST }} "echo ${{ secrets.TARGET_PASS }} | sudo -S systemctl stop euroseker.service"
+          scp target/i686-unknown-linux-gnu/release/euroseker ${{ secrets.TARGET_USER }}@${{ secrets.TARGET_HOST }}:${{ secrets.TARGET_PATH }}
+          ssh ${{ secrets.TARGET_USER }}@${{ secrets.TARGET_HOST }} "echo ${{ secrets.TARGET_PASS }} | sudo -S systemctl start euroseker.service"
