@@ -21,14 +21,14 @@ async fn main() {
 
         match monitor.fetch_exchange_rate(&api_url).await {
             Ok(exchange_rate) =>  {
-                let email_message: EmailMessage = EmailMessage {
-                    from: env::var("FROM_EMAIL").expect("FROM_EMAIL not found"),
-                    to: env::var("TO_EMAILS").expect("TO_EMAILS not found"),
-                    subject: "[Aγάπη σου ❤️] Exchange Rate Alert".to_string(),
-                    body: format!("The exchange rate is now 1 EUR = {:.2} SEK", exchange_rate.rate),
-                };
-                if monitor.should_notify(exchange_rate.rate, 0.0) {
-                    println!("Criteria met, sending notification: {:?}", email_message);
+
+                if let Some(body) = monitor.should_notify(exchange_rate.rate, 11.55) {
+                    let email_message: EmailMessage = EmailMessage {
+                        from: env::var("FROM_EMAIL").expect("FROM_EMAIL not found"),
+                        to: env::var("TO_EMAILS").expect("TO_EMAILS not found"),
+                        subject: "[Aγάπη σου ❤️] Exchange Rate Alert".to_string(),
+                        body,
+                    };
                     send_email(email_message);
                 }
 

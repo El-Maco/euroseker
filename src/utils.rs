@@ -1,7 +1,5 @@
 use std::{fs, io::Write};
 
-use chrono::{DateTime, Utc};
-
 use crate::exchangerate::monitor::ExchangeRate;
 
 
@@ -17,7 +15,7 @@ pub fn write_to_file(data: &Vec<ExchangeRate>, file_path: &str) {
 
 pub struct FileStorage {
     storage_file: String,
-    history: Vec<ExchangeRate>,
+    pub history: Vec<ExchangeRate>,
 }
 
 impl FileStorage {

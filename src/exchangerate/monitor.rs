@@ -15,8 +15,18 @@ impl ExchangeRateMonitor {
         Self { previous_rate: None, storage: FileStorage::new("data.json") }
     }
 
-    pub fn should_notify(&self, current_rate: f64, thresh: f64) -> bool {
-        current_rate >= thresh
+    pub fn should_notify(&self, current_rate: f64, thresh: f64) -> Option<String> {
+        if self.storage.history.len() >= 3 {
+            let last_three = &self.storage.history[self.storage.history.len() - 3..];
+            println!("last_three {:?}", last_three);
+            if last_three[0].rate < last_three[1].rate && last_three[1].rate < last_three[2].rate {
+                return Some(format!("Better EURO to SEK rate now than the previous 2 days. Gone from {:.4} -> {:.4} -> {:.4}", last_three[0].rate, last_three[1].rate, last_three[2].rate))
+            }
+        }
+        if current_rate >= thresh {
+            return Some(format!("The exchange rate has now exceeded the limit of {thresh} SEK. The rate is now 1 EUR = {:.2} SEK", current_rate));
+        }
+        None
     }
 
     pub fn update_rate(&mut self, rate: f64) {
