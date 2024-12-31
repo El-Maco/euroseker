@@ -1,0 +1,37 @@
+name: Deploy to ARM
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: self-hosted
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+          override: true
+          target: i686-unknown-linux-gnu
+          profile: minimal
+
+      - name: Install dependencies
+        run: sudo apt-get install -y openssl libssl-dev gcc-multilib
+
+      - name: Build
+        run: export CARGO_HOME="/home/$(whoami)/.local/share/.cargo" && cargo build --target i686-unknown-linux-gnu --release
+
+      - name: Deploy
+        env:
+          TARGET_HOST: ${{ secrets.TARGET_HOST }}
+          TARGET_USER: ${{ secrets.TARGET_USER }}
+          TARGET_PASS: ${{ secrets.TARGET_PASS }}
+          TARGET_PATH: ${{ secrets.TARGET_PATH }}
+        run: |
+          ssh $TARGET_USER@$TARGET_HOST "echo $TARGET_PASS | sudo -S systemctl stop euroseker.service"
+          scp target/i686-unknown-linux-gnu/release/euroseker $TARGET_USER@$TARGET_HOST:$TARGET_PATH
+          ssh $TARGET_USER@$TARGET_HOST "echo $TARGET_PASS | sudo -S systemctl start euroseker.service"
