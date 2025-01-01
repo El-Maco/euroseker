@@ -5,14 +5,13 @@ use chrono::{DateTime, Utc};
 use crate::utils::FileStorage;
 
 pub struct ExchangeRateMonitor {
-    previous_rate: Option<f64>,
     storage: FileStorage,
 }
 
 
 impl ExchangeRateMonitor {
     pub fn new() -> Self {
-        Self { previous_rate: None, storage: FileStorage::new("data.json") }
+        Self { storage: FileStorage::new("data.json") }
     }
 
     pub fn should_notify(&self, current_rate: f64, thresh: f64) -> Option<String> {
@@ -27,10 +26,6 @@ impl ExchangeRateMonitor {
             return Some(format!("The exchange rate has now exceeded the limit of {thresh} SEK. The rate is now 1 EUR = {:.2} SEK", current_rate));
         }
         None
-    }
-
-    pub fn update_rate(&mut self, rate: f64) {
-        self.previous_rate = Some(rate);
     }
 
     pub async fn fetch_exchange_rate(&mut self, api_url: &str) -> Result<ExchangeRate, Error> {

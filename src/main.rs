@@ -32,8 +32,6 @@ async fn main() {
                     send_email(email_message);
                 }
 
-                monitor.update_rate(exchange_rate.rate);
-
                 println!("{:?}: 1 EUR = {} SEK", exchange_rate.date, exchange_rate.rate);
 
                 time::sleep(Duration::from_secs(24 * 60 * 60)).await;
