@@ -30,14 +30,20 @@ impl ExchangeRateMonitor {
     }
 }
 
-fn send_email(rate: f64) {
-    let to_emails = env::var("TO_EMAILS").expect("TO_EMAILS not found");
-    let from_email = env::var("FROM_EMAIL").expect("FROM_EMAIL not found");
+#[derive(Debug, Deserialize)]
+struct EmailMessage {
+    from: String,
+    to: String,
+    subject: String,
+    body: String,
+}
+
+fn send_email(message: EmailMessage) {
     let email = Message::builder()
-        .from(from_email.parse().unwrap())
-        .to(to_emails.parse().unwrap())
-        .subject("Exchange Rate Alert")
-        .body(format!("The exchange rate is now 1 EUR = {:.2} SEK", rate))
+        .from(message.from.parse().unwrap())
+        .to(message.to.parse().unwrap())
+        .subject(message.subject)
+        .body(message.body)
         .unwrap();
 
     let password = env::var("EMAIL_PASS").expect("EMAIL_PASS not found");
@@ -82,14 +88,20 @@ async fn main() {
 
     let mut monitor = ExchangeRateMonitor::new();
 
-
     loop {
 
         match fetch_exchange_rate(&api_url).await {
             Ok((sek_rate, date)) =>  {
+                // if monitor.should_notify(sek_rate, 11.55) {
+                let email_message: EmailMessage = EmailMessage {
+                    from: env::var("FROM_EMAIL").expect("FROM_EMAIL not found"),
+                    to: env::var("TO_EMAILS").expect("TO_EMAILS not found"),
+                    subject: "[Aγάπη σου ❤️] Exchange Rate Alert".to_string(),
+                    body: format!("The exchange rate is now 1 EUR = {:.2} SEK", sek_rate),
+                };
                 if monitor.should_notify(sek_rate, 11.55) {
                     println!("Criteria met, sending notification");
-                    send_email(sek_rate);
+                    send_email(email_message);
                 }
 
                 monitor.update_rate(sek_rate);
