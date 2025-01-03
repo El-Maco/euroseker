@@ -1,8 +1,10 @@
 use serde::{Deserialize, Serialize};
 use reqwest::Error;
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, Local, Utc};
 
 use crate::utils::FileStorage;
+
+use super::plotter;
 
 pub struct ExchangeRateMonitor {
     storage: FileStorage,
@@ -41,10 +43,15 @@ impl ExchangeRateMonitor {
 
 
         let sek_rate: f64 = exchange_data.conversion_rates.get("SEK").map(|v| v.to_owned()).unwrap();
-        let date: DateTime<Utc> = DateTime::parse_from_rfc2822(&exchange_data.time_last_update_utc).expect("Invalid RFC2822 Date").into();
-        let exchange_rate = ExchangeRate{ rate: sek_rate, date };
+        let exchange_rate = ExchangeRate::new(sek_rate, &exchange_data.time_last_update_utc);
         self.storage.add(exchange_rate.clone());
         Ok(exchange_rate)
+    }
+
+    pub fn plot_rates(&self) -> Result<String, Box<dyn std::error::Error>> {
+        let plot_path = format!("plots/exhangerate-{}.png", Local::now().format("%d%m%Y"));
+        plotter::generate_plot(&self.storage.history, &plot_path)?;
+        Ok(plot_path)
     }
 
 }
@@ -59,5 +66,14 @@ struct ExchangeRateResponse {
 pub struct ExchangeRate {
     pub rate: f64,
     pub date: DateTime<Utc>,
+}
+
+impl ExchangeRate {
+    pub fn new(rate: f64, date: &str) -> Self {
+        ExchangeRate {
+            rate,
+            date: DateTime::parse_from_rfc2822(date).expect("Failed to parse datetime").into(),
+        }
+    }
 }
 
