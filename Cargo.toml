@@ -1,6 +1,3 @@
-[target.i686-unkown-linux-gnu]
-linker = "gcc -m32"
-
 [package]
 name = "euroseker"
 version = "0.1.0"
