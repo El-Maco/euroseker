@@ -1,3 +1,6 @@
+use std::collections::BTreeMap;
+
+use chrono::NaiveDate;
 use plotters::prelude::*;
 
 use super::monitor::ExchangeRate;
@@ -10,8 +13,38 @@ pub fn generate_plot(prices: &[ExchangeRate], file_path: &str) -> Result<(), Box
     let root = BitMapBackend::new(file_path, (800, 600)).into_drawing_area();
     root.fill(&WHITE)?;
 
-    let max_price = prices.iter().map(|er| er.rate).fold(f64::MIN, f64::max);
-    let min_price = prices.iter().map(|er| er.rate).fold(f64::MAX, f64::min);
+    let mut date_map: BTreeMap<NaiveDate, Option<f64>> = BTreeMap::new();
+    for rate in prices {
+        date_map.insert(rate.date.date_naive(), Some(rate.rate));
+    }
+
+    let first_date = *date_map.keys().next().unwrap();
+    let last_date = *date_map.keys().last().unwrap();
+
+    for date in first_date.iter_days().take_while(|&d| d <= last_date) {
+        if !date_map.contains_key(&date) {
+            date_map.insert(date, None);
+        }
+    }
+
+    let mut x_labels: Vec<String> = vec![];
+    let mut data_points: Vec<(usize, f64)> = vec![];
+    let mut index = 0;
+
+    println!("date_map {:?}", date_map);
+    for (date, rate) in &date_map {
+        x_labels.push(date.format("%d-%m-%Y").to_string());
+        if let Some(value) = rate {
+            data_points.push((index, *value));
+        }
+        index += 1;
+    }
+
+    println!("x_labels {}: {:?}", x_labels.len(), x_labels);
+    println!("data_points: {:?}", data_points);
+
+    let max_price = prices.iter().map(|er| er.rate).fold(f64::MIN, f64::max) + 0.3;
+    let min_price = prices.iter().map(|er| er.rate).fold(f64::MAX, f64::min) - 0.3;
 
     let mut chart = ChartBuilder::on(&root)
         .caption("Exchange Rates", ("sans-serif", 50))
@@ -23,10 +56,15 @@ pub fn generate_plot(prices: &[ExchangeRate], file_path: &str) -> Result<(), Box
             min_price..max_price,
         )?;
 
-    chart.configure_mesh().x_labels(5).y_labels(5).draw()?;
+    chart.configure_mesh()
+        .x_labels(x_labels.len())
+        .x_label_formatter(&|idx| x_labels.get(*idx).unwrap_or(&"".to_string()).clone())
+        .y_desc("Exchange Rate")
+        .x_desc("Date")
+        .draw()?;
 
     chart.draw_series(LineSeries::new(
-            prices.iter().enumerate().map(|(i, er)| (i, er.rate)),
+            data_points.into_iter(),
             &RED,
     ))?
         .label("Exchange Rate")
