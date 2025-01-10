@@ -28,5 +28,6 @@ jobs:
       - name: Deploy
         run: |
           ssh ${{ secrets.TARGET_USER }}@${{ secrets.TARGET_HOST }} "echo ${{ secrets.TARGET_PASS }} | sudo -S systemctl stop euroseker.service"
+          ssh ${{ secrets.TARGET_USER }}@${{ secrets.TARGET_HOST }} "cp /euroseker/euroseker /euroseker/euroseker_bak_$(date +'%y%m%d-%H%M')"
           scp target/i686-unknown-linux-gnu/release/euroseker ${{ secrets.TARGET_USER }}@${{ secrets.TARGET_HOST }}:${{ secrets.TARGET_PATH }}
           ssh ${{ secrets.TARGET_USER }}@${{ secrets.TARGET_HOST }} "echo ${{ secrets.TARGET_PASS }} | sudo -S systemctl start euroseker.service"
