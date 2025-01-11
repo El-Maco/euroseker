@@ -1,12 +1,13 @@
 mod exchangerate;
 mod utils;
 
-use exchangerate::monitor::ExchangeRateMonitor;
-use exchangerate::email::{EmailMessage, send_email};
-use tokio::{self, time};
 use dotenvy::dotenv;
+use exchangerate::email::{send_email, EmailMessage};
+use exchangerate::monitor::{ExchangeRateConfig, ExchangeRateMonitor};
 use std::{env, time::Duration};
+use tokio::{self, time};
 
+static CONFIG_FILE: &str = "config.json";
 
 #[tokio::main]
 async fn main() {
@@ -17,12 +18,13 @@ async fn main() {
 
     let mut monitor = ExchangeRateMonitor::new();
 
+    let config =
+        ExchangeRateConfig::from_config(CONFIG_FILE).expect(format!("Failed to load configuration: {CONFIG_FILE}").as_str());
+
     loop {
-
         match monitor.fetch_exchange_rate(&api_url).await {
-            Ok(exchange_rate) =>  {
-
-                if let Some(body) = monitor.should_notify(exchange_rate.rate, 11.55) {
+            Ok(exchange_rate) => {
+                if let Some(body) = monitor.should_notify(exchange_rate.rate, config.threshold) {
                     let email_message: EmailMessage = EmailMessage {
                         from: env::var("FROM_EMAIL").expect("FROM_EMAIL not found"),
                         to: env::var("TO_EMAILS").expect("TO_EMAILS not found"),
@@ -33,12 +35,14 @@ async fn main() {
                     send_email(email_message);
                 }
 
-                println!("{:?}: 1 EUR = {} SEK", exchange_rate.date, exchange_rate.rate);
+                println!(
+                    "{:?}: 1 EUR = {} SEK",
+                    exchange_rate.date, exchange_rate.rate
+                );
 
                 time::sleep(Duration::from_secs(24 * 60 * 60)).await;
-            },
-            Err(e) => eprintln!("Failed to fetch exchange rate: {}", e)
+            }
+            Err(e) => eprintln!("Failed to fetch exchange rate: {}", e),
         }
-
     }
 }
