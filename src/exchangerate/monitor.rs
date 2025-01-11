@@ -14,11 +14,12 @@ pub struct ExchangeRateConfig {
     pub debug: bool,
 }
 
+static CONFIG_FILE: &str = "config.json";
 impl ExchangeRateConfig {
-    pub fn from_config(file_path: &str) -> Result<Self, Box<dyn std::error::Error>> {
-        let config_data = fs::read_to_string(file_path)?;
-        let config: ExchangeRateConfig = serde_json::from_str(&config_data)?;
-        Ok(config)
+    pub fn new() -> Self {
+        let config_data = fs::read_to_string(CONFIG_FILE).expect("Failed to read config: {CONFIG_FILE}");
+        let config: ExchangeRateConfig = serde_json::from_str(&config_data).expect("Failed to parse ExchangeRateConfig");
+        config
     }
 }
 
@@ -71,9 +72,9 @@ impl ExchangeRateMonitor {
         Ok(exchange_rate)
     }
 
-    pub fn plot_rates(&self, config: &ExchangeRateConfig) -> Result<String, Box<dyn std::error::Error>> {
+    pub fn plot_rates(&self) -> Result<String, Box<dyn std::error::Error>> {
         let plot_path = format!("plots/exchangerate-{}.png", Local::now().format("%d%m%Y"));
-        plotter::generate_plot(&self.storage.history, &plot_path, config)?;
+        plotter::generate_plot(&self.storage.history, &plot_path)?;
         Ok(plot_path)
     }
 }

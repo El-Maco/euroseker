@@ -14,11 +14,12 @@ use super::monitor::{ExchangeRate, ExchangeRateConfig};
 pub fn generate_plot(
     prices: &[ExchangeRate],
     file_path: &str,
-    config: &ExchangeRateConfig,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let path = std::path::Path::new(file_path);
     let dir = path.parent().unwrap();
     std::fs::create_dir_all(dir).unwrap();
+
+    let config = &ExchangeRateConfig::new();
 
     let mut date_map: BTreeMap<NaiveDate, f64> = BTreeMap::new();
     for rate in prices {
@@ -111,11 +112,7 @@ mod tests {
         let file_path = dir.path().join("test_plot.png");
         let prices = create_test_data();
 
-        let config: ExchangeRateConfig = ExchangeRateConfig {
-            threshold: 0.0,
-            debug: true,
-        };
-        let result = generate_plot(&prices, file_path.to_str().unwrap(), &config);
+        let result = generate_plot(&prices, file_path.to_str().unwrap());
         assert!(result.is_ok());
         assert!(verify_file_validity(file_path.to_str().unwrap()));
 
@@ -135,7 +132,6 @@ mod tests {
         let result = generate_plot(
             &empty_prices,
             file_path.to_str().unwrap(),
-            &config,
         );
         assert!(result.is_err());
 
@@ -154,7 +150,6 @@ mod tests {
         let result = generate_plot(
             &prices,
             "/nonexistent/directory/plot.png",
-            &config,
         );
 
         assert!(result.is_err());
@@ -183,7 +178,6 @@ mod tests {
         let result = generate_plot(
             &large_prices,
             file_path.to_str().unwrap(),
-            &config,
         );
         assert!(result.is_ok());
         assert!(verify_file_validity(file_path.to_str().unwrap()));
@@ -211,7 +205,6 @@ mod tests {
         let result = generate_plot(
             &negative_prices,
             file_path.to_str().unwrap(),
-            &config,
         );
         assert!(result.is_ok());
         assert!(verify_file_validity(file_path.to_str().unwrap()));
@@ -238,7 +231,6 @@ mod tests {
         let result = generate_plot(
             &duplicate_prices,
             file_path.to_str().unwrap(),
-            &config,
         );
         assert!(result.is_ok());
         assert!(verify_file_validity(file_path.to_str().unwrap()));

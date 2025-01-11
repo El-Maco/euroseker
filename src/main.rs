@@ -7,7 +7,6 @@ use exchangerate::monitor::{ExchangeRateConfig, ExchangeRateMonitor};
 use std::{env, time::Duration};
 use tokio::{self, time};
 
-static CONFIG_FILE: &str = "config.json";
 
 #[tokio::main]
 async fn main() {
@@ -18,8 +17,7 @@ async fn main() {
 
     let mut monitor = ExchangeRateMonitor::new();
 
-    let config =
-        ExchangeRateConfig::from_config(CONFIG_FILE).expect(format!("Failed to load configuration: {CONFIG_FILE}").as_str());
+    let config = ExchangeRateConfig::new();
 
     loop {
         match monitor.fetch_exchange_rate(&api_url).await {
@@ -30,7 +28,7 @@ async fn main() {
                         to: env::var("TO_EMAILS").expect("TO_EMAILS not found"),
                         subject: "[Aγάπη σου ❤️] Exchange Rate Alert".to_string(),
                         body,
-                        attachment: monitor.plot_rates(&config).ok(),
+                        attachment: monitor.plot_rates().ok(),
                     };
                     send_email(email_message, config.debug);
                 }
