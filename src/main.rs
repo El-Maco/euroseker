@@ -32,7 +32,7 @@ async fn main() {
                         body,
                         attachment: monitor.plot_rates().ok(),
                     };
-                    send_email(email_message);
+                    send_email(email_message, config.debug);
                 }
 
                 println!(
