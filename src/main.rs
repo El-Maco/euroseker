@@ -30,7 +30,7 @@ async fn main() {
                         to: env::var("TO_EMAILS").expect("TO_EMAILS not found"),
                         subject: "[Aγάπη σου ❤️] Exchange Rate Alert".to_string(),
                         body,
-                        attachment: monitor.plot_rates().ok(),
+                        attachment: monitor.plot_rates(&config).ok(),
                     };
                     send_email(email_message, config.debug);
                 }

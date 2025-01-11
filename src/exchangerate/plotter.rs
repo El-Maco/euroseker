@@ -2,16 +2,19 @@ use std::collections::BTreeMap;
 
 use chrono::NaiveDate;
 use gnuplot::{
-    AutoOption, AxesCommon, Figure, LabelOption,
-    PlotOption::{Caption, Color},
+    AutoOption, AxesCommon,
+    DashType::Dash,
+    Figure, LabelOption,
+    PlotOption::{Caption, Color, LineStyle},
     Tick,
 };
 
-use super::monitor::ExchangeRate;
+use super::monitor::{ExchangeRate, ExchangeRateConfig};
 
 pub fn generate_plot(
     prices: &[ExchangeRate],
     file_path: &str,
+    config: &ExchangeRateConfig,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let path = std::path::Path::new(file_path);
     let dir = path.parent().unwrap();
@@ -53,11 +56,19 @@ pub fn generate_plot(
         .map(|&x| Tick::Major(x as i32, AutoOption::Fix(tick_labels[x].clone())))
         .collect::<Vec<_>>();
 
+    let threshold_x = [0, x_values.len() - 1];
+    let threshold_y = [config.threshold, config.threshold];
+
     fg.axes2d()
         .lines(
             &x_values,
             &y_values,
             &[Caption("Exchange Rate"), Color("blue")],
+        )
+        .lines(
+            &threshold_x,
+            &threshold_y,
+            &[Caption("Limit"), Color("green"), LineStyle(Dash)],
         )
         .set_x_ticks_custom(ticks, &[], &[LabelOption::Rotate(-45.0)])
         .set_x_label("Time", &[])
@@ -100,7 +111,11 @@ mod tests {
         let file_path = dir.path().join("test_plot.png");
         let prices = create_test_data();
 
-        let result = generate_plot(&prices, file_path.to_str().unwrap());
+        let config: ExchangeRateConfig = ExchangeRateConfig {
+            threshold: 0.0,
+            debug: true,
+        };
+        let result = generate_plot(&prices, file_path.to_str().unwrap(), &config);
         assert!(result.is_ok());
         assert!(verify_file_validity(file_path.to_str().unwrap()));
 
@@ -113,7 +128,15 @@ mod tests {
         let file_path = dir.path().join("empty_plot.png");
         let empty_prices: Vec<ExchangeRate> = Vec::new();
 
-        let result = generate_plot(&empty_prices, file_path.to_str().unwrap());
+        let config: ExchangeRateConfig = ExchangeRateConfig {
+            threshold: 0.0,
+            debug: true,
+        };
+        let result = generate_plot(
+            &empty_prices,
+            file_path.to_str().unwrap(),
+            &config,
+        );
         assert!(result.is_err());
 
         if let Err(e) = result {
@@ -124,7 +147,15 @@ mod tests {
     #[test]
     fn test_invalid_file_path() {
         let prices = create_test_data();
-        let result = generate_plot(&prices, "/nonexistent/directory/plot.png");
+        let config: ExchangeRateConfig = ExchangeRateConfig {
+            threshold: 0.0,
+            debug: true,
+        };
+        let result = generate_plot(
+            &prices,
+            "/nonexistent/directory/plot.png",
+            &config,
+        );
 
         assert!(result.is_err());
         if let Err(e) = result {
@@ -139,13 +170,21 @@ mod tests {
     fn test_large_dataset() -> Result<(), Box<dyn std::error::Error>> {
         let dir = tempdir()?;
         let file_path = dir.path().join("large_plot.png");
+        let config: ExchangeRateConfig = ExchangeRateConfig {
+            threshold: 0.0,
+            debug: true,
+        };
 
         // Create large dataset
         let large_prices: Vec<ExchangeRate> = (1..=1000)
             .map(|i| ExchangeRate::new(i as f64, format!("Day{}", i).as_str()))
             .collect();
 
-        let result = generate_plot(&large_prices, file_path.to_str().unwrap());
+        let result = generate_plot(
+            &large_prices,
+            file_path.to_str().unwrap(),
+            &config,
+        );
         assert!(result.is_ok());
         assert!(verify_file_validity(file_path.to_str().unwrap()));
 
@@ -164,7 +203,16 @@ mod tests {
             ExchangeRate::new(200.0, "2024-12-29T00:00:02Z"),
         ];
 
-        let result = generate_plot(&negative_prices, file_path.to_str().unwrap());
+        let config: ExchangeRateConfig = ExchangeRateConfig {
+            threshold: 0.0,
+            debug: true,
+        };
+
+        let result = generate_plot(
+            &negative_prices,
+            file_path.to_str().unwrap(),
+            &config,
+        );
         assert!(result.is_ok());
         assert!(verify_file_validity(file_path.to_str().unwrap()));
 
@@ -182,7 +230,16 @@ mod tests {
             ExchangeRate::new(200.0, "2024-12-27T00:00:02Z"),
         ];
 
-        let result = generate_plot(&duplicate_prices, file_path.to_str().unwrap());
+        let config: ExchangeRateConfig = ExchangeRateConfig {
+            threshold: 0.0,
+            debug: true,
+        };
+
+        let result = generate_plot(
+            &duplicate_prices,
+            file_path.to_str().unwrap(),
+            &config,
+        );
         assert!(result.is_ok());
         assert!(verify_file_validity(file_path.to_str().unwrap()));
 

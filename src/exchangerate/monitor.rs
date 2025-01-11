@@ -71,9 +71,9 @@ impl ExchangeRateMonitor {
         Ok(exchange_rate)
     }
 
-    pub fn plot_rates(&self) -> Result<String, Box<dyn std::error::Error>> {
+    pub fn plot_rates(&self, config: &ExchangeRateConfig) -> Result<String, Box<dyn std::error::Error>> {
         let plot_path = format!("plots/exchangerate-{}.png", Local::now().format("%d%m%Y"));
-        plotter::generate_plot(&self.storage.history, &plot_path)?;
+        plotter::generate_plot(&self.storage.history, &plot_path, config)?;
         Ok(plot_path)
     }
 }
