@@ -1,21 +1,24 @@
 use std::collections::BTreeMap;
 
 use chrono::NaiveDate;
+use gnuplot::{
+    AxesCommon, Figure, PlotOption::{Caption, Color}
+};
 use plotters::prelude::*;
 
 use super::monitor::ExchangeRate;
 
-pub fn generate_plot(prices: &[ExchangeRate], file_path: &str) -> Result<(), Box<dyn std::error::Error>> {
+pub fn generate_plot(
+    prices: &[ExchangeRate],
+    file_path: &str,
+) -> Result<(), Box<dyn std::error::Error>> {
     let path = std::path::Path::new(file_path);
     let dir = path.parent().unwrap();
     std::fs::create_dir_all(dir).unwrap();
 
-    let root = BitMapBackend::new(file_path, (800, 600)).into_drawing_area();
-    root.fill(&WHITE)?;
-
-    let mut date_map: BTreeMap<NaiveDate, Option<f64>> = BTreeMap::new();
+    let mut date_map: BTreeMap<NaiveDate, f64> = BTreeMap::new();
     for rate in prices {
-        date_map.insert(rate.date.date_naive(), Some(rate.rate));
+        date_map.insert(rate.date.date_naive(), rate.rate);
     }
 
     let first_date = *date_map.keys().next().unwrap();
@@ -23,58 +26,38 @@ pub fn generate_plot(prices: &[ExchangeRate], file_path: &str) -> Result<(), Box
 
     for date in first_date.iter_days().take_while(|&d| d <= last_date) {
         if !date_map.contains_key(&date) {
-            date_map.insert(date, None);
+            date_map.insert(date, f64::NAN);
         }
     }
 
-    let mut x_labels: Vec<String> = vec![];
-    let mut data_points: Vec<(usize, f64)> = vec![];
-    let mut index = 0;
+    let mut data_points: Vec<(String, f64)> = vec![];
 
     println!("date_map {:?}", date_map);
     for (date, rate) in &date_map {
-        x_labels.push(date.format("%d-%m-%Y").to_string());
-        if let Some(value) = rate {
-            data_points.push((index, *value));
-        }
-        index += 1;
+        data_points.push((date.format("%d-%m-%Y").to_string(), *rate));
     }
 
-    println!("x_labels {}: {:?}", x_labels.len(), x_labels);
     println!("data_points: {:?}", data_points);
 
-    let max_price = prices.iter().map(|er| er.rate).fold(f64::MIN, f64::max) + 0.3;
-    let min_price = prices.iter().map(|er| er.rate).fold(f64::MAX, f64::min) - 0.3;
+    let mut fg = Figure::new();
 
-    let mut chart = ChartBuilder::on(&root)
-        .caption("Exchange Rates", ("sans-serif", 50))
-        .margin(20)
-        .x_label_area_size(40)
-        .y_label_area_size(40)
-        .build_cartesian_2d(
-            0..prices.len(),
-            min_price..max_price,
-        )?;
+    let x_values: Vec<usize> = data_points.iter().enumerate().map(|(i, _)| i).collect();
+    let y_values: Vec<f64> = data_points.iter().map(|(_, p)| *p).collect();
 
-    chart.configure_mesh()
-        .x_labels(x_labels.len())
-        .x_label_formatter(&|idx| x_labels.get(*idx).unwrap_or(&"".to_string()).clone())
-        .y_desc("Exchange Rate")
-        .x_desc("Date")
-        .draw()?;
+    fg.axes2d()
+        .lines(
+            &x_values,
+            &y_values,
+            &[Caption("Exchange Rate"), Color("blue")],
+        )
+        .set_x_label("Time", &[])
+        .set_y_label("Rate", &[]);
 
-    chart.draw_series(LineSeries::new(
-            data_points.into_iter(),
-            &RED,
-    ))?
-        .label("Exchange Rate")
-        .legend(|(x, y)| PathElement::new(vec![(x, y), (x + 20, y)], &RED));
-    chart.configure_series_labels().background_style(&WHITE).draw()?;
-    root.present()?;
+    fg.set_terminal("pngcairo", file_path);
+    fg.show().unwrap();
 
     Ok(())
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -135,8 +118,10 @@ mod tests {
 
         assert!(result.is_err());
         if let Err(e) = result {
-            assert!(e.to_string().contains("permission denied") ||
-                   e.to_string().contains("no such file or directory"));
+            assert!(
+                e.to_string().contains("permission denied")
+                    || e.to_string().contains("no such file or directory")
+            );
         }
     }
 
@@ -193,5 +178,4 @@ mod tests {
 
         Ok(())
     }
-
 }
