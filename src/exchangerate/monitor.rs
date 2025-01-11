@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::utils::FileStorage;
 
-use super::plotter;
+use super::{love_note::LoveNote, plotter};
 
 #[derive(Deserialize, Debug)]
 pub struct ExchangeRateConfig {
@@ -17,8 +17,10 @@ pub struct ExchangeRateConfig {
 static CONFIG_FILE: &str = "config.json";
 impl ExchangeRateConfig {
     pub fn new() -> Self {
-        let config_data = fs::read_to_string(CONFIG_FILE).expect("Failed to read config: {CONFIG_FILE}");
-        let config: ExchangeRateConfig = serde_json::from_str(&config_data).expect("Failed to parse ExchangeRateConfig");
+        let config_data =
+            fs::read_to_string(CONFIG_FILE).expect("Failed to read config: {CONFIG_FILE}");
+        let config: ExchangeRateConfig =
+            serde_json::from_str(&config_data).expect("Failed to parse ExchangeRateConfig");
         config
     }
 }
@@ -35,15 +37,17 @@ impl ExchangeRateMonitor {
     }
 
     pub fn should_notify(&self, current_rate: f64, thresh: f64) -> Option<String> {
+        let love_note = LoveNote::new();
+        println!("Love message: {}", love_note.message);
         if self.storage.history.len() >= 3 {
             let last_three = &self.storage.history[self.storage.history.len() - 3..];
             println!("last_three {:?}", last_three);
             if last_three[0].rate < last_three[1].rate && last_three[1].rate < last_three[2].rate {
-                return Some(format!("Better EURO to SEK rate now than the previous 2 days. Gone from {:.4} -> {:.4} -> {:.4}", last_three[0].rate, last_three[1].rate, last_three[2].rate));
+                return Some(format!("Better EURO to SEK rate now than the previous 2 days. Gone from {:.4} -> {:.4} -> {:.4}\n\n{} ❤️\n\nLove, Maco 🥰", last_three[0].rate, last_three[1].rate, last_three[2].rate, love_note.message));
             }
         }
         if current_rate >= thresh {
-            return Some(format!("The exchange rate has now exceeded the limit of {thresh} SEK. The rate is now 1 EUR = {:.2} SEK", current_rate));
+            return Some(format!("The exchange rate has now exceeded the limit of {thresh:.2} SEK. The rate is now 1 EUR = {:.2} SEK\n\n{} ❤️\n\nLove, Maco 🥰", current_rate, love_note.message));
         }
         None
     }
