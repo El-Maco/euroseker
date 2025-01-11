@@ -2,9 +2,10 @@ use std::collections::BTreeMap;
 
 use chrono::NaiveDate;
 use gnuplot::{
-    AxesCommon, Figure, PlotOption::{Caption, Color}
+    AutoOption, AxesCommon, Figure, LabelOption,
+    PlotOption::{Caption, Color},
+    Tick,
 };
-use plotters::prelude::*;
 
 use super::monitor::ExchangeRate;
 
@@ -44,17 +45,26 @@ pub fn generate_plot(
     let x_values: Vec<usize> = data_points.iter().enumerate().map(|(i, _)| i).collect();
     let y_values: Vec<f64> = data_points.iter().map(|(_, p)| *p).collect();
 
+    let tick_labels: Vec<String> = data_points.iter().map(|(date, _)| date.clone()).collect();
+
+    let ticks: Vec<Tick<i32, String>> = x_values
+        .iter()
+        .step_by(x_values.len() / 5)
+        .map(|&x| Tick::Major(x as i32, AutoOption::Fix(tick_labels[x].clone())))
+        .collect::<Vec<_>>();
+
     fg.axes2d()
         .lines(
             &x_values,
             &y_values,
             &[Caption("Exchange Rate"), Color("blue")],
         )
+        .set_x_ticks_custom(ticks, &[], &[LabelOption::Rotate(-45.0)])
         .set_x_label("Time", &[])
         .set_y_label("Rate", &[]);
 
-    fg.set_terminal("pngcairo", file_path);
-    fg.show().unwrap();
+    println!("Generated plot {file_path}");
+    fg.save_to_png(file_path, 800, 600).unwrap();
 
     Ok(())
 }
