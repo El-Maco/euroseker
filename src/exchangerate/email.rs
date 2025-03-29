@@ -9,7 +9,9 @@ use std::{env, fs};
 #[derive(Debug, Deserialize)]
 pub struct EmailMessage {
     pub from: String,
-    pub to: String,
+    pub to: Option<String>,
+    pub cc: Option<String>,
+    pub bcc: Vec<String>,
     pub subject: String,
     pub body: String,
     pub attachment: Option<String>,
@@ -30,9 +32,19 @@ fn create_attachment(path: Option<String>) -> SinglePart {
 }
 
 pub fn send_email(message: EmailMessage, debug: bool) {
-    let email = Message::builder()
-        .from(message.from.parse().unwrap())
-        .to(message.to.parse().unwrap())
+    let mut builder = Message::builder().from(message.from.parse().unwrap());
+
+    if let Some(to) = message.to {
+        builder = builder.to(to.parse().unwrap());
+    }
+    if let Some(cc) = message.cc {
+        builder = builder.cc(cc.parse().unwrap());
+    }
+    for bcc in message.bcc.iter() {
+        builder = builder.bcc(bcc.parse().unwrap());
+    }
+
+    let email = builder
         .subject(message.subject)
         .multipart(
             MultiPart::mixed()

@@ -22,14 +22,18 @@ async fn main() {
     loop {
         match monitor.fetch_exchange_rate(&api_url).await {
             Ok(exchange_rate) => {
+                        let from = env::var("FROM_EMAIL").expect("FROM_EMAIL not found");
+                        let to = env::var("TO_EMAILS").ok();
+                        let cc = env::var("CC_EMAILS").ok();
+                        let bcc = env::var("BCC_EMAILS").unwrap_or(String::new()).split(";").map(|s| s.to_string()).collect();
                 if let Some(body) = monitor.should_notify(exchange_rate.rate, config.threshold) {
                     let email_message: EmailMessage = EmailMessage {
-                        from: env::var("FROM_EMAIL").expect("FROM_EMAIL not found"),
-                        to: env::var("TO_EMAILS").expect("TO_EMAILS not found"),
+                        from, to, cc, bcc,
                         subject: "[Aγάπη σου ❤️] Exchange Rate Alert".to_string(),
                         body,
                         attachment: monitor.plot_rates().ok(),
                     };
+                    println!("Sending email {:?}", email_message);
                     send_email(email_message, config.debug);
                 }
 
